@@ -8,6 +8,7 @@ import regex as re
 
 WIKIPEDIA_URL = 'https://en.wikipedia.org'
 PAGE_NAME = "/wiki/Departments_of_France"
+MAP_TEMPLATE_URL = "https://upload.wikimedia.org/wikipedia/commons/b/b6/D%C3%A9partements_de_France-simple.svg"
 MODEL = genanki.Model(
     2081266965,  # Model ID
     "French Departments",  # Model name
@@ -15,6 +16,7 @@ MODEL = genanki.Model(
         {"name": "Name"},
         {"name": "Capital"},
         {"name": "Map"},
+        {"name": "Map Template"}, # TODO: the script should be parametrized whether we want to use the map template or not
         {"name": "Flag"},
         {"name": "INSEE"},
     ],
@@ -72,7 +74,7 @@ DECK = genanki.Deck(
 PACKAGE = genanki.Package(DECK)
 
 
-def download_image(url, name, type):
+def download_image(url, name = None, type = None):
     headers = {
         'User-Agent': 'anki_regions_of_france/0.0 (https://github.com/lthiet/anki_region_france, nguyenthiet.lam@gmail.com)'}
     map_response = requests.get(url, headers=headers)
@@ -80,7 +82,10 @@ def download_image(url, name, type):
     # Write the map to a file
     if not os.path.exists('data'):
         os.makedirs('data')
-    map_download_path = os.path.join('data', name + '_' + type + '.svg')
+    if name is None or type is None:
+        map_download_path = os.path.join('data', str(uuid.uuid4()) + '.svg')
+    else:
+        map_download_path = os.path.join('data', name + '_' + type + '.svg')
     with open(map_download_path, 'wb') as f:
         f.write(map_response.content)
 
@@ -108,7 +113,12 @@ if __name__ == "__main__":
     # Remove the first row (header)
     table_data.pop(0)
 
+
+    # Download the map template
+    map_template = download_image(MAP_TEMPLATE_URL, 'map_template', 'svg')
     media_files = []
+    media_files.append(map_template)
+
     # Iterate over the table
     for i, row in enumerate(table_data):
         # Get the name
@@ -158,6 +168,7 @@ if __name__ == "__main__":
                 name,
                 capital,
                 f"<img src='{map_abs_path.split('/')[-1]}'>" if map_abs_path else "",
+                f"<img src='{map_template.split('/')[-1]}'>" if map_template else "",
                 f"<img src='{flag_abs_path.split('/')[-1]}'>" if flag_abs_path else "",
                 insee
             ]
